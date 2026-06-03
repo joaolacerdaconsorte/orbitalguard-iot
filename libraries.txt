@@ -1,0 +1,10 @@
+# Wokwi Library List
+# See https://docs.wokwi.com/guides/libraries
+
+# Adicionadas automaticamente a partir dos includes do sketch.ino:
+DHT sensor library
+Adafruit Unified Sensor
+Adafruit BMP280 Library
+LiquidCrystal I2C
+PubSubClient
+ArduinoJson
