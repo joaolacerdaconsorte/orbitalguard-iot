@@ -1,0 +1,10 @@
+Projeto Wokwi — OrbitalGuard: Estacao Terrestre de Monitoramento Climatico
+
+Simule este projeto em https://wokwi.com
+Link da simulacao interativa: [INSERIR LINK DO PROJETO WOKWI]
+
+Para rodar localmente no Wokwi:
+1. Acesse https://wokwi.com e crie um novo projeto ESP32.
+2. Substitua o conteudo por sketch.ino e diagram.json deste diretorio.
+3. Garanta que as bibliotecas de libraries.txt estejam instaladas (aba Library Manager).
+4. Clique em "Start the simulation".
