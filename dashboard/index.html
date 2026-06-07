@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OrbitalGuard — Dashboard da Estação</title>
+
+  <!-- Cliente MQTT sobre WebSocket e biblioteca de gráficos (CDN) -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+
+  <style>
+    :root {
+      --navy: #0a1b3d;
+      --navy2: #15294f;
+      --cyan: #22d3ee;
+      --sky: #38bdf8;
+      --bg: #0b1220;
+      --card: #111c34;
+      --border: #1e2d4d;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --green: #22c55e;
+      --amber: #f59e0b;
+      --red: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Roboto, system-ui, sans-serif;
+      background: radial-gradient(1200px 600px at 70% -10%, #15294f 0%, var(--bg) 60%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 28px; border-bottom: 1px solid var(--border);
+      background: rgba(10, 27, 61, 0.7); backdrop-filter: blur(6px);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand .logo {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: radial-gradient(circle at 30% 30%, var(--cyan), var(--navy));
+      display: grid; place-items: center; font-size: 20px;
+    }
+    .brand h1 { font-size: 18px; margin: 0; letter-spacing: 0.5px; }
+    .brand small { color: var(--muted); font-size: 12px; }
+    .conn {
+      display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600;
+      padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border);
+      background: var(--card);
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+    .dot.on { background: var(--green); box-shadow: 0 0 10px var(--green); }
+    .dot.off { background: var(--red); }
+
+    main { padding: 24px 28px; max-width: 1100px; margin: 0 auto; }
+    .station {
+      display: flex; flex-wrap: wrap; gap: 18px; align-items: center; justify-content: space-between;
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 16px 20px; margin-bottom: 20px;
+    }
+    .station .item { display: flex; flex-direction: column; }
+    .station .item span { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .station .item strong { font-size: 16px; margin-top: 2px; }
+
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+    .metric {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 18px;
+    }
+    .metric .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .metric .value { font-size: 34px; font-weight: 800; margin-top: 6px; }
+    .metric .value span { font-size: 16px; color: var(--muted); font-weight: 600; }
+
+    .risk {
+      border-radius: 16px; padding: 18px 22px; margin-bottom: 20px; border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      background: var(--card); transition: background .3s, border-color .3s;
+    }
+    .risk .label { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .risk .level { font-size: 28px; font-weight: 900; letter-spacing: 1px; }
+    .risk.normal { border-color: var(--green); background: linear-gradient(90deg, rgba(34,197,94,.12), transparent); }
+    .risk.normal .level { color: var(--green); }
+    .risk.alerta { border-color: var(--amber); background: linear-gradient(90deg, rgba(245,158,11,.14), transparent); }
+    .risk.alerta .level { color: var(--amber); }
+    .risk.critico { border-color: var(--red); background: linear-gradient(90deg, rgba(239,68,68,.16), transparent); }
+    .risk.critico .level { color: var(--red); }
+
+    .panel { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 18px; margin-bottom: 20px; }
+    .panel h2 { font-size: 14px; margin: 0 0 14px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+    .panel h2 .tag { color: var(--muted); font-weight: 500; font-size: 12px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: .5px; }
+    .pill { padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .pill.NORMAL { background: rgba(34,197,94,.15); color: var(--green); }
+    .pill.ALERTA, .pill.ALTO, .pill.MEDIO { background: rgba(245,158,11,.15); color: var(--amber); }
+    .pill.CRITICO { background: rgba(239,68,68,.15); color: var(--red); }
+    .empty { color: var(--muted); font-style: italic; padding: 14px 10px; }
+
+    footer { padding: 18px 28px; color: var(--muted); font-size: 12px; text-align: center; }
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .btn {
+      background: var(--cyan); color: #06283d; border: none; border-radius: 10px;
+      padding: 9px 16px; font-weight: 700; cursor: pointer; font-size: 13px;
+    }
+    .btn.ghost { background: transparent; color: var(--cyan); border: 1px solid var(--cyan); }
+    input.cfg { background: var(--navy2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 8px 10px; font-size: 12px; width: 230px; }
+
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">🛰️</div>
+      <div>
+        <h1>OrbitalGuard</h1>
+        <small>Dashboard da Estação de Monitoramento Climático</small>
+      </div>
+    </div>
+    <div class="conn"><span id="connDot" class="dot"></span><span id="connText">Conectando…</span></div>
+  </header>
+
+  <main>
+    <div class="station">
+      <div class="item"><span>Estação</span><strong id="estacao">—</strong></div>
+      <div class="item"><span>Região</span><strong id="regiao">—</strong></div>
+      <div class="item"><span>Status</span><strong id="estado">—</strong></div>
+      <div class="item"><span>Última leitura</span><strong id="ultima">—</strong></div>
+    </div>
+
+    <div class="grid">
+      <div class="metric"><div class="label">🌡️ Temperatura</div><div class="value"><span id="temp">--</span> <span>°C</span></div></div>
+      <div class="metric"><div class="label">💧 Umidade</div><div class="value"><span id="umid">--</span> <span>%</span></div></div>
+      <div class="metric"><div class="label">🧭 Pressão</div><div class="value"><span id="press">--</span> <span>hPa</span></div></div>
+    </div>
+
+    <div class="risk normal" id="riskBox">
+      <div>
+        <div class="label">Nível de risco climático</div>
+        <div class="level" id="risco">AGUARDANDO</div>
+      </div>
+      <div style="font-size:40px" id="riskIcon">🛰️</div>
+    </div>
+
+    <div class="panel">
+      <h2>Telemetria de temperatura <span class="tag">(últimas leituras)</span></h2>
+      <canvas id="chart" height="90"></canvas>
+    </div>
+
+    <div class="panel">
+      <h2>Registro de alertas e status <span class="tag">(tópicos /alerta e /status)</span></h2>
+      <table>
+        <thead><tr><th>Horário</th><th>Tópico</th><th>Nível/Estado</th><th>Detalhe</th></tr></thead>
+        <tbody id="log"><tr><td colspan="4" class="empty">Nenhuma mensagem recebida ainda…</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Conexão MQTT</h2>
+      <div class="controls">
+        <input class="cfg" id="brokerInput" value="ws://broker.hivemq.com:8000/mqtt" />
+        <input class="cfg" id="topicInput" value="orbitalguard/estacao/#" />
+        <button class="btn" id="reconnectBtn">Reconectar</button>
+        <button class="btn ghost" id="simBtn">Simular leitura</button>
+      </div>
+      <p style="color:var(--muted);font-size:12px;margin-top:12px">
+        A dashboard assina os tópicos publicados pela estação ESP32 (Wokwi ou hardware real).
+        Use <strong>Simular leitura</strong> para demonstrar a apresentação dos dados sem o dispositivo no ar.
+      </p>
+    </div>
+  </main>
+
+  <footer>OrbitalGuard · Global Solution FIAP 2026/1 · Turma 2TDSPW — broker público HiveMQ via WebSocket</footer>
+
+  <script>
+    // ---------------------------------------------------------------------
+    // Configuração e estado
+    // ---------------------------------------------------------------------
+    const els = {
+      connDot: document.getElementById('connDot'),
+      connText: document.getElementById('connText'),
+      estacao: document.getElementById('estacao'),
+      regiao: document.getElementById('regiao'),
+      estado: document.getElementById('estado'),
+      ultima: document.getElementById('ultima'),
+      temp: document.getElementById('temp'),
+      umid: document.getElementById('umid'),
+      press: document.getElementById('press'),
+      risco: document.getElementById('risco'),
+      riskBox: document.getElementById('riskBox'),
+      riskIcon: document.getElementById('riskIcon'),
+      log: document.getElementById('log'),
+    };
+
+    let client = null;
+
+    // Gráfico de temperatura (Chart.js)
+    const chart = new Chart(document.getElementById('chart'), {
+      type: 'line',
+      data: { labels: [], datasets: [{
+        label: 'Temperatura (°C)', data: [],
+        borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.15)',
+        tension: 0.35, fill: true, pointRadius: 2,
+      }]},
+      options: {
+        animation: false, responsive: true,
+        scales: {
+          x: { ticks: { color: '#94a3b8', maxTicksLimit: 6 }, grid: { color: '#1e2d4d' } },
+          y: { ticks: { color: '#94a3b8' }, grid: { color: '#1e2d4d' } },
+        },
+        plugins: { legend: { labels: { color: '#e2e8f0' } } },
+      },
+    });
+
+    function horaAgora() {
+      return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    // ---------------------------------------------------------------------
+    // Renderização das mensagens recebidas
+    // ---------------------------------------------------------------------
+    function aplicarTelemetria(m) {
+      if (m.estacao) els.estacao.textContent = m.estacao;
+      if (m.regiao) els.regiao.textContent = m.regiao;
+      if (m.temperatura != null) els.temp.textContent = Number(m.temperatura).toFixed(1);
+      if (m.umidade != null) els.umid.textContent = Number(m.umidade).toFixed(0);
+      if (m.pressao_hpa != null) els.press.textContent = Number(m.pressao_hpa).toFixed(0);
+      els.ultima.textContent = horaAgora();
+      if (m.risco) aplicarRisco(m.risco);
+
+      if (m.temperatura != null) {
+        chart.data.labels.push(horaAgora());
+        chart.data.datasets[0].data.push(Number(m.temperatura));
+        if (chart.data.labels.length > 20) { chart.data.labels.shift(); chart.data.datasets[0].data.shift(); }
+        chart.update();
+      }
+    }
+
+    function aplicarRisco(risco) {
+      const r = String(risco).toUpperCase();
+      els.risco.textContent = r;
+      els.riskBox.classList.remove('normal', 'alerta', 'critico');
+      if (r.includes('CRIT')) { els.riskBox.classList.add('critico'); els.riskIcon.textContent = '🚨'; }
+      else if (r.includes('ALERT') || r.includes('ALTO') || r.includes('MED')) { els.riskBox.classList.add('alerta'); els.riskIcon.textContent = '⚠️'; }
+      else { els.riskBox.classList.add('normal'); els.riskIcon.textContent = '✅'; }
+    }
+
+    function adicionarLog(topico, nivel, detalhe) {
+      if (els.log.querySelector('.empty')) els.log.innerHTML = '';
+      const tr = document.createElement('tr');
+      const cls = String(nivel || '').toUpperCase();
+      tr.innerHTML = `<td>${horaAgora()}</td><td>${topico}</td>` +
+        `<td><span class="pill ${cls}">${nivel || '—'}</span></td><td>${detalhe || ''}</td>`;
+      els.log.prepend(tr);
+      while (els.log.children.length > 12) els.log.removeChild(els.log.lastChild);
+    }
+
+    function rotear(topic, payloadText) {
+      let msg;
+      try { msg = JSON.parse(payloadText); } catch { return; }
+      if (topic.endsWith('/telemetria')) aplicarTelemetria(msg);
+      else if (topic.endsWith('/alerta')) adicionarLog('alerta', msg.nivel, (msg.causa || '') + ' · ' + (msg.regiao || ''));
+      else if (topic.endsWith('/status')) {
+        els.estado.textContent = msg.estado || '—';
+        adicionarLog('status', msg.estado, msg.regiao || msg.estacao || '');
+      }
+    }
+
+    // ---------------------------------------------------------------------
+    // Conexão MQTT sobre WebSocket
+    // ---------------------------------------------------------------------
+    function conectar() {
+      const url = document.getElementById('brokerInput').value.trim();
+      const topico = document.getElementById('topicInput').value.trim();
+      if (client) { try { client.end(true); } catch (e) {} }
+
+      els.connText.textContent = 'Conectando…';
+      els.connDot.className = 'dot';
+      client = mqtt.connect(url, { clientId: 'orbitalguard-dash-' + Math.random().toString(16).slice(2) });
+
+      client.on('connect', () => {
+        els.connDot.className = 'dot on';
+        els.connText.textContent = 'Conectado';
+        client.subscribe(topico);
+      });
+      client.on('reconnect', () => { els.connText.textContent = 'Reconectando…'; });
+      client.on('error', () => { els.connDot.className = 'dot off'; els.connText.textContent = 'Erro de conexão'; });
+      client.on('close', () => { els.connDot.className = 'dot off'; els.connText.textContent = 'Desconectado'; });
+      client.on('message', (topic, payload) => rotear(topic, payload.toString()));
+    }
+
+    document.getElementById('reconnectBtn').addEventListener('click', conectar);
+
+    // Demonstração: injeta uma leitura de exemplo no mesmo pipeline de renderização
+    document.getElementById('simBtn').addEventListener('click', () => {
+      const temp = 26 + Math.random() * 16;       // 26–42 °C
+      const umid = 18 + Math.random() * 65;        // 18–83 %
+      const press = 996 + Math.random() * 24;      // 996–1020 hPa
+      let fatores = 0;
+      if (temp >= 38) fatores++; if (umid <= 30) fatores++; if (press <= 1000) fatores++;
+      const risco = fatores >= 2 ? 'CRITICO' : fatores === 1 ? 'ALERTA' : 'NORMAL';
+      aplicarTelemetria({ estacao: 'EST-SP-001 (sim)', regiao: 'Litoral Norte-SP', temperatura: temp, umidade: umid, pressao_hpa: press, risco });
+      if (risco !== 'NORMAL') adicionarLog('alerta', risco, 'leitura simulada · Litoral Norte-SP');
+    });
+
+    // Inicia a conexão ao abrir a página
+    conectar();
+  </script>
+</body>
+</html>
