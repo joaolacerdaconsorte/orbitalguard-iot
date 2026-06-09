@@ -1,0 +1,15 @@
+GRUPO: OrbitalGuard
+TURMA: 2TDSPW
+DISCIPLINA: Disruptive Architectures: IoT, IOB & Generative IA
+
+INTEGRANTES:
+- RM: 565565 | Nome: João Vitor Lacerda          | Turma: 2TDSPW
+- RM: 565403 | Nome: Kauan Vieira de Lima         | Turma: 2TDSPW
+- RM: 564969 | Nome: Murillo Fernandes Carapia    | Turma: 2TDSPW
+
+PROJETO: OrbitalGuard — Estação Terrestre de Monitoramento Climático.
+Dispositivo IoT baseado em ESP32 que mede temperatura/umidade (DHT22) e pressão
+atmosférica (BMP280), classifica o risco climático localmente, sinaliza por LEDs +
+buzzer + display LCD I2C e publica a telemetria via MQTT (3 tópicos) para a
+plataforma de monitoramento climático e prevenção de desastres via satélite
+(Global Solution FIAP 2026/1 — Economia Espacial).

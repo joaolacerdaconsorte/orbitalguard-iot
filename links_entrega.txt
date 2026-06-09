@@ -1,0 +1,27 @@
+SQUAD: ORBITALGUARD
+ENTREGA: DISRUPTIVE ARCHITECTURES: IOT, IOB & GENERATIVE IA — GLOBAL SOLUTION 2026/1
+
+Integrantes da Equipe (Turma: 2TDSPW):
+- João Vitor Lacerda       — RM 565565
+- Kauan Vieira de Lima     — RM 565403
+- Murillo Fernandes Carapia — RM 564969
+
+========================================================================
+1. LINK DO REPOSITÓRIO GITHUB DO PROJETO DE IOT (PÚBLICO):
+https://github.com/joaolacerdaconsorte/orbitalguard-iot
+
+========================================================================
+2. LINK DA SIMULAÇÃO INTERATIVA NO WOKWI:
+[INSERIR LINK DO PROJETO WOKWI]
+
+========================================================================
+3. LINK DO VÍDEO DE DEMONSTRAÇÃO (se exigido pela disciplina):
+[INSERIR LINK DO VÍDEO YOUTUBE]
+========================================================================
+
+Resumo da solução:
+Estação terrestre ESP32 que monitora temperatura/umidade (DHT22) e pressão
+atmosférica (BMP280), classifica o risco climático na borda (NORMAL/ALERTA/CRÍTICO),
+sinaliza por LEDs + buzzer + LCD I2C e publica telemetria/alertas/status via MQTT
+nos tópicos orbitalguard/estacao/{telemetria,alerta,status}, integrando-se às APIs
+OrbitalGuard (Java/.NET) e ao banco Oracle da plataforma.
