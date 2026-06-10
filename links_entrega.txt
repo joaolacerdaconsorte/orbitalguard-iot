@@ -12,11 +12,12 @@ https://github.com/joaolacerdaconsorte/orbitalguard-iot
 
 ========================================================================
 2. LINK DA SIMULAÇÃO INTERATIVA NO WOKWI:
-[INSERIR LINK DO PROJETO WOKWI]
+https://wokwi.com/projects/466393944595974145
 
 ========================================================================
-3. LINK DO VÍDEO DE DEMONSTRAÇÃO (se exigido pela disciplina):
-[INSERIR LINK DO VÍDEO YOUTUBE]
+3. DEMONSTRAÇÃO DO FUNCIONAMENTO:
+Simulação interativa no Wokwi (link acima) executando o firmware + dashboard de
+visualização em tempo real (orbitalguard-iot/dashboard/index.html).
 ========================================================================
 
 Resumo da solução:

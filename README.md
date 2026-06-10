@@ -4,7 +4,7 @@
 Tema: Economia Espacial · Turma: **2TDSPW**
 
 Repositório: https://github.com/joaolacerdaconsorte/orbitalguard-iot
-Simulação Wokwi: `[INSERIR LINK DO PROJETO WOKWI]`
+Simulação Wokwi: `https://wokwi.com/projects/466393944595974145`
 
 ---
 
